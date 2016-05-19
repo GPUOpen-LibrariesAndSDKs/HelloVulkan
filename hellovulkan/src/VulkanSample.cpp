@@ -230,13 +230,13 @@ VkInstance CreateInstance ()
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-void CreateDeviceAndQueue (VkInstance instance, VkDevice* outputDevice, 
-	VkQueue* outputQueue, int* outputQueueIndex, 
+void CreateDeviceAndQueue (VkInstance instance, VkDevice* outputDevice,
+	VkQueue* outputQueue, int* outputQueueIndex,
 	VkPhysicalDevice* outputPhysicalDevice)
 {
 	uint32_t physicalDeviceCount = 0;
 	vkEnumeratePhysicalDevices (instance, &physicalDeviceCount, nullptr);
-	
+
 	std::vector<VkPhysicalDevice> devices{ physicalDeviceCount };
 	vkEnumeratePhysicalDevices (instance, &physicalDeviceCount,
 		devices.data ());
@@ -364,7 +364,7 @@ VkRenderPass CreateRenderPass (VkDevice device, VkFormat swapchainFormat)
 	renderPassCreateInfo.subpassCount = 1;
 	renderPassCreateInfo.pSubpasses = &subpassDescription;
 	renderPassCreateInfo.pAttachments = &attachmentDescription;
-	
+
 	VkRenderPass result = nullptr;
 	vkCreateRenderPass (device, &renderPassCreateInfo, nullptr,
 		&result);
@@ -373,8 +373,8 @@ VkRenderPass CreateRenderPass (VkDevice device, VkFormat swapchainFormat)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-void CreateFramebuffers (VkDevice device, VkRenderPass renderPass, 
-	const int width, const int height, 
+void CreateFramebuffers (VkDevice device, VkRenderPass renderPass,
+	const int width, const int height,
 	const int count, const VkImageView* imageViews, VkFramebuffer* framebuffers)
 {
 	for (int i = 0; i < count; ++i) {
@@ -406,14 +406,14 @@ void CreateSwapchainImageViews (VkDevice device, VkFormat format,
 		imageViewCreateInfo.subresourceRange.layerCount = 1;
 		imageViewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 
-		vkCreateImageView (device, &imageViewCreateInfo, nullptr, 
+		vkCreateImageView (device, &imageViewCreateInfo, nullptr,
 			&imageViews[i]);
 	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 VkSwapchainKHR CreateSwapchain (VkPhysicalDevice physicalDevice, VkDevice device,
-	VkSurfaceKHR surface, const int surfaceWidth, const int surfaceHeight, 
+	VkSurfaceKHR surface, const int surfaceWidth, const int surfaceHeight,
 	const int backbufferCount, VulkanSample::ImportTable* importTable,
 	VkFormat* swapchainFormat)
 {
@@ -437,7 +437,11 @@ VkSwapchainKHR CreateSwapchain (VkPhysicalDevice physicalDevice, VkDevice device
 
 	uint32_t swapChainImageCount = backbufferCount;
 	assert (swapChainImageCount >= surfaceCapabilities.minImageCount);
-	assert (swapChainImageCount < surfaceCapabilities.maxImageCount);
+
+	// 0 indicates unlimited number of images
+	if (surfaceCapabilities.maxImageCount != 0) {
+		assert (swapChainImageCount < surfaceCapabilities.maxImageCount);
+	}
 
 	VkSurfaceTransformFlagBitsKHR surfaceTransformFlags;
 
@@ -517,7 +521,7 @@ void SetupDebugCallback (VkInstance instance, VulkanSample::ImportTable* importT
 VulkanSample::VulkanSample ()
 {
 	instance_ = CreateInstance ();
-	if (instance_ == VK_NULL_HANDLE)
+	if (instance_ == VK_NULL_HANDLE) 
 	{
 		// just bail out if the user does not have a compatible Vulkan driver
 		return;
@@ -631,7 +635,7 @@ void VulkanSample::ShutdownImpl ()
 ///////////////////////////////////////////////////////////////////////////////
 void VulkanSample::Run (const int frameCount)
 {
-	if (IsInitialized() == false)
+	if (IsInitialized() == false) 
 	{
 		// just bail out if the user does not have a compatible Vulkan driver
 		return;
@@ -725,14 +729,14 @@ void VulkanSample::Run (const int frameCount)
 		renderPassBeginInfo.pClearValues = &clearValue;
 		renderPassBeginInfo.clearValueCount = 1;
 
-		vkCmdBeginRenderPass (commandBuffers_[currentBackBuffer_], 
+		vkCmdBeginRenderPass (commandBuffers_[currentBackBuffer_],
 			&renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-		
+
 		RenderImpl (commandBuffers_[currentBackBuffer_]);
 
 		vkCmdEndRenderPass (commandBuffers_[currentBackBuffer_]);
 		vkEndCommandBuffer (commandBuffers_[currentBackBuffer_]);
-		
+
 		// Submit rendering work to the graphics queue
 		const VkPipelineStageFlags waitDstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 		VkSubmitInfo submitInfo = {};
@@ -745,7 +749,7 @@ void VulkanSample::Run (const int frameCount)
 		submitInfo.signalSemaphoreCount = 1;
 		submitInfo.pSignalSemaphores = &renderingCompleteSemaphore;
 		vkQueueSubmit (queue_, 1, &submitInfo, VK_NULL_HANDLE);
-		
+
 		// Submit present operation to present queue
 		VkPresentInfoKHR presentInfo = {};
 		presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -761,7 +765,7 @@ void VulkanSample::Run (const int frameCount)
 
 	// Wait for all rendering to finish
 	vkWaitForFences (device_, 3, frameFences_, VK_TRUE, UINT64_MAX);
-	
+
 	vkDestroySemaphore (device_, imageAcquiredSemaphore, nullptr);
 	vkDestroySemaphore (device_, renderingCompleteSemaphore, nullptr);
 
