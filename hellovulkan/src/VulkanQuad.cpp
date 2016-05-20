@@ -1,6 +1,7 @@
 #include "VulkanQuad.h"
 
 #include "Shaders.h"
+#include "Utility.h"
 #include "Window.h"
 
 #include <vector>
@@ -314,23 +315,40 @@ void VulkanQuad::CreateMeshBuffers (VkCommandBuffer /*uploadCommandBuffer*/)
 	};
 
 	auto memoryHeaps = EnumerateHeaps (physicalDevice_);
-	deviceMemory_ = AllocateMemory (memoryHeaps, device_,
-		640 << 10 /* 640 KiB ought to be enough for anybody */);
-	vertexBuffer_ = AllocateBuffer (device_, sizeof (vertices),
-		VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
-	vkBindBufferMemory (device_, vertexBuffer_, deviceMemory_, 0);
 
 	indexBuffer_ = AllocateBuffer (device_, sizeof (indices),
 		VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
+	vertexBuffer_ = AllocateBuffer (device_, sizeof (vertices),
+		VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
+
+	// We want to store the index buffer behind the vertex buffer, so we need
+	// to know the alignment
+	VkMemoryRequirements vertexBufferMemoryRequirements = {};
+	vkGetBufferMemoryRequirements (device_, vertexBuffer_,
+		&vertexBufferMemoryRequirements);
+	VkMemoryRequirements indexBufferMemoryRequirements = {};
+	vkGetBufferMemoryRequirements (device_, indexBuffer_,
+		&indexBufferMemoryRequirements);
+
+	VkDeviceSize bufferSize = vertexBufferMemoryRequirements.size;
+	// We want to place the index buffer behind it - round up to the next
+	// alignment which allows that
+	VkDeviceSize indexBufferOffset = RoundToNextMultiple (bufferSize,
+		indexBufferMemoryRequirements.alignment);
+	bufferSize = indexBufferOffset + indexBufferMemoryRequirements.size;
+
+	deviceMemory_ = AllocateMemory (memoryHeaps, device_,
+		static_cast<int>(bufferSize));
+	vkBindBufferMemory (device_, vertexBuffer_, deviceMemory_, 0);
 	vkBindBufferMemory (device_, indexBuffer_, deviceMemory_,
-		256 /* somewhere behind the vertex buffer */);
+		indexBufferOffset);
 
 	void* mapping = nullptr;
 	vkMapMemory (device_, deviceMemory_, 0, VK_WHOLE_SIZE,
 		0, &mapping);
 	::memcpy (mapping, vertices, sizeof (vertices));
 
-	::memcpy (static_cast<uint8_t*> (mapping) + 256 /* same offset as above */,
+	::memcpy (static_cast<uint8_t*> (mapping) + indexBufferOffset,
 		indices, sizeof (indices));
 	vkUnmapMemory (device_, deviceMemory_);
 }
