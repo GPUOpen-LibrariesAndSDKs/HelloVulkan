@@ -321,8 +321,6 @@ void VulkanQuad::CreateMeshBuffers (VkCommandBuffer /*uploadCommandBuffer*/)
 	vertexBuffer_ = AllocateBuffer (device_, sizeof (vertices),
 		VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
 
-	// We want to store the index buffer behind the vertex buffer, so we need
-	// to know the alignment
 	VkMemoryRequirements vertexBufferMemoryRequirements = {};
 	vkGetBufferMemoryRequirements (device_, vertexBuffer_,
 		&vertexBufferMemoryRequirements);
@@ -331,14 +329,15 @@ void VulkanQuad::CreateMeshBuffers (VkCommandBuffer /*uploadCommandBuffer*/)
 		&indexBufferMemoryRequirements);
 
 	VkDeviceSize bufferSize = vertexBufferMemoryRequirements.size;
-	// We want to place the index buffer behind it - round up to the next
-	// alignment which allows that
+	// We want to place the index buffer behind the vertex buffer. Need to take
+	// the alignment into account to find the next suitable location
 	VkDeviceSize indexBufferOffset = RoundToNextMultiple (bufferSize,
 		indexBufferMemoryRequirements.alignment);
-	bufferSize = indexBufferOffset + indexBufferMemoryRequirements.size;
 
+	bufferSize = indexBufferOffset + indexBufferMemoryRequirements.size;
 	deviceMemory_ = AllocateMemory (memoryHeaps, device_,
 		static_cast<int>(bufferSize));
+
 	vkBindBufferMemory (device_, vertexBuffer_, deviceMemory_, 0);
 	vkBindBufferMemory (device_, indexBuffer_, deviceMemory_,
 		indexBufferOffset);
