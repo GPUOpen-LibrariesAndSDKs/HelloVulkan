@@ -67,6 +67,10 @@ private:
 	VkCommandBuffer commandBuffers_[QUEUE_SLOT_COUNT];
 	VkCommandBuffer setupCommandBuffer_;
 	uint32_t currentBackBuffer_ = 0;
+
+#ifdef _DEBUG
+	VkDebugReportCallbackEXT debugCallback_;
+#endif
 };
 }
 

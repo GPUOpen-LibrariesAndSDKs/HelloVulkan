@@ -239,6 +239,7 @@ VkPipeline CreatePipeline (VkDevice device, VkRenderPass renderPass, VkPipelineL
 	pipelineRasterizationStateCreateInfo.depthClampEnable = VK_FALSE;
 	pipelineRasterizationStateCreateInfo.rasterizerDiscardEnable = VK_FALSE;
 	pipelineRasterizationStateCreateInfo.depthBiasEnable = VK_FALSE;
+	pipelineRasterizationStateCreateInfo.lineWidth = 1.0f;
 
 	VkPipelineDepthStencilStateCreateInfo pipelineDepthStencilStateCreateInfo = {};
 	pipelineDepthStencilStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;

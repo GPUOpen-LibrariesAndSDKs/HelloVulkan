@@ -499,7 +499,7 @@ VkSurfaceKHR CreateSurface (VkInstance instance, HWND hwnd)
 
 #ifdef _DEBUG
 ///////////////////////////////////////////////////////////////////////////////
-void SetupDebugCallback (VkInstance instance, VulkanSample::ImportTable* importTable)
+VkDebugReportCallbackEXT SetupDebugCallback (VkInstance instance, VulkanSample::ImportTable* importTable)
 {
 	if (importTable->vkCreateDebugReportCallbackEXT) {
 		VkDebugReportCallbackCreateInfoEXT callbackCreateInfo = {};
@@ -512,6 +512,18 @@ void SetupDebugCallback (VkInstance instance, VulkanSample::ImportTable* importT
 
 		VkDebugReportCallbackEXT callback;
 		importTable->vkCreateDebugReportCallbackEXT (instance, &callbackCreateInfo, nullptr, &callback);
+		return callback;
+	} else {
+		return VK_NULL_HANDLE;
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+void CleanupDebugCallback (VkInstance instance, VkDebugReportCallbackEXT callback,
+	VulkanSample::ImportTable* importTable)
+{
+	if (importTable->vkDestroyDebugReportCallbackEXT) {
+		importTable->vkDestroyDebugReportCallbackEXT (instance, callback, nullptr);
 	}
 }
 #endif
@@ -535,7 +547,7 @@ VulkanSample::VulkanSample ()
 	importTable_.reset (new ImportTable{ instance_, device_ });
 
 #ifdef _DEBUG
-	SetupDebugCallback (instance_, importTable_.get ());
+	debugCallback_ = SetupDebugCallback (instance_, importTable_.get ());
 #endif
 
 	window_.reset (new Window{ "Hello Vulkan", 640, 480 });
@@ -627,6 +639,10 @@ void VulkanSample::ShutdownImpl ()
 
 	vkDestroySwapchainKHR (device_, swapchain_, nullptr);
 	vkDestroySurfaceKHR (instance_, surface_, nullptr);
+
+#ifdef _DEBUG
+	CleanupDebugCallback (instance_, debugCallback_, importTable_.get ());
+#endif
 
 	vkDestroyDevice (device_, nullptr);
 	vkDestroyInstance (instance_, nullptr);
