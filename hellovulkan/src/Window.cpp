@@ -22,8 +22,10 @@
 
 #include "Window.h"
 
-namespace AMD {
-namespace {
+namespace AMD
+{
+namespace
+{
 ///////////////////////////////////////////////////////////////////////////////
 LRESULT CALLBACK amdWndProc(
     HWND hwnd,
@@ -35,7 +37,8 @@ LRESULT CALLBACK amdWndProc(
     auto ptr = ::GetWindowLongPtr(hwnd, GWLP_USERDATA);
     auto window = reinterpret_cast<IWindow*> (ptr);
 
-    switch (uMsg) {
+    switch (uMsg)
+    {
     case WM_CLOSE:
         window->OnClose();
         return 0;
@@ -43,7 +46,7 @@ LRESULT CALLBACK amdWndProc(
 
     return ::DefWindowProcA(hwnd, uMsg, wParam, lParam);
 }
-}
+}   // namespace
 
 ///////////////////////////////////////////////////////////////////////////////
 IWindow::~IWindow()
@@ -73,7 +76,7 @@ Window::Window(const std::string& title, const int width, const int height)
     ::SetRect(&rect, 0, 0, width, height);
     ::AdjustWindowRect(&rect, style, FALSE);
 
-    windowClass_.reset(new WindowClass("D3D12SampleWindowClass", amdWndProc));
+    windowClass_.reset(new WindowClass("VulkanSampleWindowClass", amdWndProc));
 
     // Create the main window.
     hwnd_ = ::CreateWindowA(windowClass_->GetName().c_str(),
@@ -134,4 +137,5 @@ WindowClass::~WindowClass()
     ::UnregisterClassA(name_.c_str(),
         (HINSTANCE)::GetModuleHandle(NULL));
 }
-}
+
+}   // namespace AMD
