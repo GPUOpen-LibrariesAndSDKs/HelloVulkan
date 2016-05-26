@@ -758,11 +758,9 @@ void VulkanSample::Run(const int frameCount)
             UINT64_MAX);
         vkResetFences(device_, 1, &frameFences_[currentBackBuffer_]);
 
-		// Record command buffer
-		VkCommandBufferBeginInfo beginInfo = {};
+        VkCommandBufferBeginInfo beginInfo = {};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-		beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
-
+        
         vkBeginCommandBuffer(commandBuffers_[currentBackBuffer_], &beginInfo);
 
         VkRenderPassBeginInfo renderPassBeginInfo = {};
