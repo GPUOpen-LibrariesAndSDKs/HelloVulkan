@@ -387,7 +387,7 @@ VkRenderPass CreateRenderPass(VkDevice device, VkFormat swapchainFormat)
     attachmentDescription.format = swapchainFormat;
     attachmentDescription.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     attachmentDescription.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-    attachmentDescription.initialLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+    attachmentDescription.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     attachmentDescription.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
     attachmentDescription.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     attachmentDescription.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
@@ -718,36 +718,11 @@ void VulkanSample::Run(const int frameCount)
     }
 
     vkResetFences(device_, 1, &frameFences_[0]);
-    // The setup command buffer transitions everything into a known good state
     {
         VkCommandBufferBeginInfo beginInfo = {};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
         vkBeginCommandBuffer(setupCommandBuffer_, &beginInfo);
-
-        VkImageMemoryBarrier acquireBarriers[3] = {};
-
-        for (int i = 0; i < QUEUE_SLOT_COUNT; ++i)
-        {
-            auto& acquireImageBarrier = acquireBarriers[i];
-            acquireImageBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-            acquireImageBarrier.srcAccessMask = 0;
-            acquireImageBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-            acquireImageBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-            acquireImageBarrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-            acquireImageBarrier.image = swapchainImages_[i];
-            acquireImageBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-            acquireImageBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-            acquireImageBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-            acquireImageBarrier.subresourceRange.layerCount = 1;
-            acquireImageBarrier.subresourceRange.levelCount = 1;
-        }
-
-        vkCmdPipelineBarrier(setupCommandBuffer_,
-            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-            0, 0, nullptr, 0, nullptr,
-            3, acquireBarriers);
 
         InitializeImpl(setupCommandBuffer_);
 
@@ -783,10 +758,10 @@ void VulkanSample::Run(const int frameCount)
             UINT64_MAX);
         vkResetFences(device_, 1, &frameFences_[currentBackBuffer_]);
 
-        // Record command buffer
-        VkCommandBufferBeginInfo beginInfo = {};
+		// Record command buffer
+		VkCommandBufferBeginInfo beginInfo = {};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
+		beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
 
         vkBeginCommandBuffer(commandBuffers_[currentBackBuffer_], &beginInfo);
 
