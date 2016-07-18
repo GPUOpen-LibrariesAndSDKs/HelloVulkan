@@ -100,17 +100,22 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\src\ImageIO.h" />
+    <ClInclude Include="..\src\RubyTexture.h" />
     <ClInclude Include="..\src\Shaders.h" />
     <ClInclude Include="..\src\Utility.h" />
     <ClInclude Include="..\src\VulkanQuad.h" />
     <ClInclude Include="..\src\VulkanSample.h" />
+    <ClInclude Include="..\src\VulkanTexturedQuad.h" />
     <ClInclude Include="..\src\Window.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\src\ImageIO.cpp" />
     <ClCompile Include="..\src\Main.cpp" />
     <ClCompile Include="..\src\Utility.cpp" />
     <ClCompile Include="..\src\VulkanQuad.cpp" />
     <ClCompile Include="..\src\VulkanSample.cpp" />
+    <ClCompile Include="..\src\VulkanTexturedQuad.cpp" />
     <ClCompile Include="..\src\Window.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

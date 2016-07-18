@@ -20,23 +20,26 @@
 // THE SOFTWARE.
 //
 
-#ifndef AMD_VULKAN_SAMPLE_QUAD_H_
-#define AMD_VULKAN_SAMPLE_QUAD_H_
+#ifndef AMD_VULKAN_SAMPLE_TEXTURED_QUAD_H_
+#define AMD_VULKAN_SAMPLE_TEXTURED_QUAD_H_
 
 #include "VulkanSample.h"
 
 namespace AMD
 {
-class VulkanQuad : public VulkanSample
+class VulkanTexturedQuad : public VulkanSample
 {
 private:
-    void CreatePipelineStateObject ();
-    void CreateMeshBuffers (VkCommandBuffer uploadCommandList);
-    void RenderImpl (VkCommandBuffer commandList) override;
-    void InitializeImpl (VkCommandBuffer uploadCommandList) override;
-    void ShutdownImpl () override;
+    void CreatePipelineStateObject();
+    void CreateMeshBuffers(VkCommandBuffer uploadCommandList);
+    void CreateTexture(VkCommandBuffer uploadCommandList);
+    void CreateDescriptors ();
+    void CreateSampler ();
+    void RenderImpl(VkCommandBuffer commandList) override;
+    void InitializeImpl(VkCommandBuffer uploadCommandList) override;
+    void ShutdownImpl() override;
 
-    VkDeviceMemory deviceMemory_ = VK_NULL_HANDLE;
+    VkDeviceMemory deviceBufferMemory_ = VK_NULL_HANDLE;
     VkBuffer vertexBuffer_ = VK_NULL_HANDLE;
     VkBuffer indexBuffer_ = VK_NULL_HANDLE;
 
@@ -45,6 +48,18 @@ private:
 
     VkPipeline pipeline_ = VK_NULL_HANDLE;
     VkPipelineLayout pipelineLayout_ = VK_NULL_HANDLE;
+
+    VkDeviceMemory deviceImageMemory_ = VK_NULL_HANDLE;
+    VkImage rubyImage_ = VK_NULL_HANDLE;
+    VkImageView rubyImageView_ = VK_NULL_HANDLE;
+
+    VkDeviceMemory uploadImageMemory_ = VK_NULL_HANDLE;
+    VkBuffer uploadImageBuffer_ = VK_NULL_HANDLE;
+
+    VkDescriptorPool descriptorPool_ = VK_NULL_HANDLE;
+    VkDescriptorSet descriptorSet_ = VK_NULL_HANDLE;
+
+    VkSampler sampler_ = VK_NULL_HANDLE;
 };
 }
 

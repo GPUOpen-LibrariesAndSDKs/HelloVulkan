@@ -28,48 +28,46 @@
 
 #include <vector>
 
-namespace AMD
-{
+namespace AMD {
 ///////////////////////////////////////////////////////////////////////////////
-void VulkanQuad::ShutdownImpl()
+void VulkanQuad::ShutdownImpl ()
 {
-    vkDestroyPipeline(device_, pipeline_, nullptr);
-    vkDestroyPipelineLayout(device_, pipelineLayout_, nullptr);
+    vkDestroyPipeline (device_, pipeline_, nullptr);
+    vkDestroyPipelineLayout (device_, pipelineLayout_, nullptr);
 
-    vkDestroyBuffer(device_, vertexBuffer_, nullptr);
-    vkDestroyBuffer(device_, indexBuffer_, nullptr);
-    vkFreeMemory(device_, deviceMemory_, nullptr);
+    vkDestroyBuffer (device_, vertexBuffer_, nullptr);
+    vkDestroyBuffer (device_, indexBuffer_, nullptr);
+    vkFreeMemory (device_, deviceMemory_, nullptr);
 
-    vkDestroyShaderModule(device_, vertexShader_, nullptr);
-    vkDestroyShaderModule(device_, fragmentShader_, nullptr);
+    vkDestroyShaderModule (device_, vertexShader_, nullptr);
+    vkDestroyShaderModule (device_, fragmentShader_, nullptr);
 
-    VulkanSample::ShutdownImpl();
+    VulkanSample::ShutdownImpl ();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-void VulkanQuad::RenderImpl(VkCommandBuffer commandBuffer)
+void VulkanQuad::RenderImpl (VkCommandBuffer commandBuffer)
 {
-    VulkanSample::RenderImpl(commandBuffer);
+    VulkanSample::RenderImpl (commandBuffer);
 
-    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+    vkCmdBindPipeline (commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
         pipeline_);
-    VkDeviceSize offsets[] = { 0 };
-    vkCmdBindIndexBuffer(commandBuffer, indexBuffer_, 0, VK_INDEX_TYPE_UINT32);
-    vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexBuffer_, offsets);
-    vkCmdDrawIndexed(commandBuffer, 6, 1, 0, 0, 0);
+    VkDeviceSize offsets [] = { 0 };
+    vkCmdBindIndexBuffer (commandBuffer, indexBuffer_, 0, VK_INDEX_TYPE_UINT32);
+    vkCmdBindVertexBuffers (commandBuffer, 0, 1, &vertexBuffer_, offsets);
+    vkCmdDrawIndexed (commandBuffer, 6, 1, 0, 0, 0);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-void VulkanQuad::InitializeImpl(VkCommandBuffer uploadCommandBuffer)
+void VulkanQuad::InitializeImpl (VkCommandBuffer uploadCommandBuffer)
 {
-    VulkanSample::InitializeImpl(uploadCommandBuffer);
+    VulkanSample::InitializeImpl (uploadCommandBuffer);
 
-    CreatePipelineStateObject();
-    CreateMeshBuffers(uploadCommandBuffer);
+    CreatePipelineStateObject ();
+    CreateMeshBuffers (uploadCommandBuffer);
 }
 
-namespace
-{
+namespace {
 struct MemoryTypeInfo
 {
     bool deviceLocal = false;
@@ -89,20 +87,20 @@ struct MemoryTypeInfo
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-std::vector<MemoryTypeInfo> EnumerateHeaps(VkPhysicalDevice device)
+std::vector<MemoryTypeInfo> EnumerateHeaps (VkPhysicalDevice device)
 {
     VkPhysicalDeviceMemoryProperties memoryProperties = {};
-    vkGetPhysicalDeviceMemoryProperties(device, &memoryProperties);
+    vkGetPhysicalDeviceMemoryProperties (device, &memoryProperties);
 
     std::vector<MemoryTypeInfo::Heap> heaps;
 
     for (uint32_t i = 0; i < memoryProperties.memoryHeapCount; ++i)
     {
         MemoryTypeInfo::Heap info;
-        info.size = memoryProperties.memoryHeaps[i].size;
-        info.deviceLocal = (memoryProperties.memoryHeaps[i].flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) != 0;
+        info.size = memoryProperties.memoryHeaps [i].size;
+        info.deviceLocal = (memoryProperties.memoryHeaps [i].flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) != 0;
 
-        heaps.push_back(info);
+        heaps.push_back (info);
     }
 
     std::vector<MemoryTypeInfo> result;
@@ -111,24 +109,24 @@ std::vector<MemoryTypeInfo> EnumerateHeaps(VkPhysicalDevice device)
     {
         MemoryTypeInfo typeInfo;
 
-        typeInfo.deviceLocal = (memoryProperties.memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) != 0;
-        typeInfo.hostVisible = (memoryProperties.memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) != 0;
-        typeInfo.hostCoherent = (memoryProperties.memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) != 0;
-        typeInfo.hostCached = (memoryProperties.memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_HOST_CACHED_BIT) != 0;
-        typeInfo.lazilyAllocated = (memoryProperties.memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT) != 0;
+        typeInfo.deviceLocal = (memoryProperties.memoryTypes [i].propertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) != 0;
+        typeInfo.hostVisible = (memoryProperties.memoryTypes [i].propertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) != 0;
+        typeInfo.hostCoherent = (memoryProperties.memoryTypes [i].propertyFlags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) != 0;
+        typeInfo.hostCached = (memoryProperties.memoryTypes [i].propertyFlags & VK_MEMORY_PROPERTY_HOST_CACHED_BIT) != 0;
+        typeInfo.lazilyAllocated = (memoryProperties.memoryTypes [i].propertyFlags & VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT) != 0;
 
-        typeInfo.heap = heaps[memoryProperties.memoryTypes[i].heapIndex];
+        typeInfo.heap = heaps [memoryProperties.memoryTypes [i].heapIndex];
 
         typeInfo.index = static_cast<int> (i);
 
-        result.push_back(typeInfo);
+        result.push_back (typeInfo);
     }
 
     return result;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-VkDeviceMemory AllocateMemory(const std::vector<MemoryTypeInfo>& memoryInfos,
+VkDeviceMemory AllocateMemory (const std::vector<MemoryTypeInfo>& memoryInfos,
     VkDevice device, const int size)
 {
     // We take the first HOST_VISIBLE memory
@@ -142,7 +140,7 @@ VkDeviceMemory AllocateMemory(const std::vector<MemoryTypeInfo>& memoryInfos,
             memoryAllocateInfo.allocationSize = size;
 
             VkDeviceMemory deviceMemory;
-            vkAllocateMemory(device, &memoryAllocateInfo, nullptr,
+            vkAllocateMemory (device, &memoryAllocateInfo, nullptr,
                 &deviceMemory);
             return deviceMemory;
         }
@@ -152,7 +150,7 @@ VkDeviceMemory AllocateMemory(const std::vector<MemoryTypeInfo>& memoryInfos,
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-VkBuffer AllocateBuffer(VkDevice device, const int size,
+VkBuffer AllocateBuffer (VkDevice device, const int size,
     const VkBufferUsageFlagBits bits)
 {
     VkBufferCreateInfo bufferCreateInfo = {};
@@ -161,25 +159,25 @@ VkBuffer AllocateBuffer(VkDevice device, const int size,
     bufferCreateInfo.usage = bits;
 
     VkBuffer result;
-    vkCreateBuffer(device, &bufferCreateInfo, nullptr, &result);
+    vkCreateBuffer (device, &bufferCreateInfo, nullptr, &result);
     return result;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-VkPipelineLayout CreatePipelineLayout(VkDevice device)
+VkPipelineLayout CreatePipelineLayout (VkDevice device)
 {
     VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = {};
     pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 
     VkPipelineLayout result;
-    vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, nullptr,
+    vkCreatePipelineLayout (device, &pipelineLayoutCreateInfo, nullptr,
         &result);
 
     return result;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-VkShaderModule LoadShader(VkDevice device, const void* shaderContents,
+VkShaderModule LoadShader (VkDevice device, const void* shaderContents,
     const size_t size)
 {
     VkShaderModuleCreateInfo shaderModuleCreateInfo = {};
@@ -189,31 +187,31 @@ VkShaderModule LoadShader(VkDevice device, const void* shaderContents,
     shaderModuleCreateInfo.codeSize = size;
 
     VkShaderModule result;
-    vkCreateShaderModule(device, &shaderModuleCreateInfo, nullptr, &result);
+    vkCreateShaderModule (device, &shaderModuleCreateInfo, nullptr, &result);
 
     return result;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-VkPipeline CreatePipeline(VkDevice device, VkRenderPass renderPass, VkPipelineLayout layout,
+VkPipeline CreatePipeline (VkDevice device, VkRenderPass renderPass, VkPipelineLayout layout,
     VkShaderModule vertexShader, VkShaderModule fragmentShader,
     VkExtent2D viewportSize)
 {
     VkVertexInputBindingDescription vertexInputBindingDescription;
     vertexInputBindingDescription.binding = 0;
     vertexInputBindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-    vertexInputBindingDescription.stride = sizeof(float) * 5;
+    vertexInputBindingDescription.stride = sizeof (float) * 5;
 
-    VkVertexInputAttributeDescription vertexInputAttributeDescription[2] = {};
-    vertexInputAttributeDescription[0].binding = vertexInputBindingDescription.binding;
-    vertexInputAttributeDescription[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-    vertexInputAttributeDescription[0].location = 0;
-    vertexInputAttributeDescription[0].offset = 0;
+    VkVertexInputAttributeDescription vertexInputAttributeDescription [2] = {};
+    vertexInputAttributeDescription [0].binding = vertexInputBindingDescription.binding;
+    vertexInputAttributeDescription [0].format = VK_FORMAT_R32G32B32_SFLOAT;
+    vertexInputAttributeDescription [0].location = 0;
+    vertexInputAttributeDescription [0].offset = 0;
 
-    vertexInputAttributeDescription[1].binding = vertexInputBindingDescription.binding;
-    vertexInputAttributeDescription[1].format = VK_FORMAT_R32G32_SFLOAT;
-    vertexInputAttributeDescription[1].location = 1;
-    vertexInputAttributeDescription[1].offset = sizeof(float) * 3;
+    vertexInputAttributeDescription [1].binding = vertexInputBindingDescription.binding;
+    vertexInputAttributeDescription [1].format = VK_FORMAT_R32G32_SFLOAT;
+    vertexInputAttributeDescription [1].location = 1;
+    vertexInputAttributeDescription [1].offset = sizeof (float) * 3;
 
     VkPipelineVertexInputStateCreateInfo pipelineVertexInputStateCreateInfo = {};
     pipelineVertexInputStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
@@ -285,16 +283,16 @@ VkPipeline CreatePipeline(VkDevice device, VkRenderPass renderPass, VkPipelineLa
     pipelineMultisampleStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
     pipelineMultisampleStateCreateInfo.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 
-    VkPipelineShaderStageCreateInfo pipelineShaderStageCreateInfos[2] = {};
-    pipelineShaderStageCreateInfos[0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    pipelineShaderStageCreateInfos[0].module = vertexShader;
-    pipelineShaderStageCreateInfos[0].pName = "main";
-    pipelineShaderStageCreateInfos[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
+    VkPipelineShaderStageCreateInfo pipelineShaderStageCreateInfos [2] = {};
+    pipelineShaderStageCreateInfos [0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    pipelineShaderStageCreateInfos [0].module = vertexShader;
+    pipelineShaderStageCreateInfos [0].pName = "main";
+    pipelineShaderStageCreateInfos [0].stage = VK_SHADER_STAGE_VERTEX_BIT;
 
-    pipelineShaderStageCreateInfos[1].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    pipelineShaderStageCreateInfos[1].module = fragmentShader;
-    pipelineShaderStageCreateInfos[1].pName = "main";
-    pipelineShaderStageCreateInfos[1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+    pipelineShaderStageCreateInfos [1].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    pipelineShaderStageCreateInfos [1].module = fragmentShader;
+    pipelineShaderStageCreateInfos [1].pName = "main";
+    pipelineShaderStageCreateInfos [1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
 
     VkGraphicsPipelineCreateInfo graphicsPipelineCreateInfo = {};
     graphicsPipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -312,15 +310,15 @@ VkPipeline CreatePipeline(VkDevice device, VkRenderPass renderPass, VkPipelineLa
     graphicsPipelineCreateInfo.stageCount = 2;
 
     VkPipeline pipeline;
-    vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &graphicsPipelineCreateInfo,
+    vkCreateGraphicsPipelines (device, VK_NULL_HANDLE, 1, &graphicsPipelineCreateInfo,
         nullptr, &pipeline);
 
     return pipeline;
 }
-}   // namespace
+}
 
 ///////////////////////////////////////////////////////////////////////////////
-void VulkanQuad::CreateMeshBuffers(VkCommandBuffer /*uploadCommandBuffer*/)
+void VulkanQuad::CreateMeshBuffers (VkCommandBuffer /*uploadCommandBuffer*/)
 {
     struct Vertex
     {
@@ -328,30 +326,26 @@ void VulkanQuad::CreateMeshBuffers(VkCommandBuffer /*uploadCommandBuffer*/)
         float uv[2];
     };
 
-    static const Vertex vertices[4] =
-    {
+    static const Vertex vertices[4] = {
         // Upper Left
-        { { -1.0f,  1.0f, 0 }, { 0, 0 } },
+        { { -1.0f, 1.0f, 0 }, { 0, 0 } },
         // Upper Right
-        { {  1.0f,  1.0f, 0 }, { 1, 0 } },
+        { { 1.0f, 1.0f, 0 }, { 1, 0 } },
         // Bottom right
-        { {  1.0f, -1.0f, 0 }, { 1, 1 } },
+        { { 1.0f, -1.0f, 0 }, { 1, 1 } },
         // Bottom left
         { { -1.0f, -1.0f, 0 }, { 0, 1 } }
     };
 
-    static const int indices[6] =
-    {
+    static const int indices[6] = {
         0, 1, 2, 2, 3, 0
     };
 
-    auto memoryHeaps = EnumerateHeaps(physicalDevice_);
-
+    auto memoryHeaps = EnumerateHeaps (physicalDevice_);
     indexBuffer_ = AllocateBuffer(device_, sizeof(indices),
         VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
-    vertexBuffer_ = AllocateBuffer(device_, sizeof(vertices),
+    vertexBuffer_ = AllocateBuffer (device_, sizeof (vertices),
         VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
-
     VkMemoryRequirements vertexBufferMemoryRequirements = {};
     vkGetBufferMemoryRequirements(device_, vertexBuffer_,
         &vertexBufferMemoryRequirements);
@@ -369,30 +363,35 @@ void VulkanQuad::CreateMeshBuffers(VkCommandBuffer /*uploadCommandBuffer*/)
     deviceMemory_ = AllocateMemory(memoryHeaps, device_,
         static_cast<int>(bufferSize));
 
-    vkBindBufferMemory(device_, vertexBuffer_, deviceMemory_, 0);
-    vkBindBufferMemory(device_, indexBuffer_, deviceMemory_,
+    vkBindBufferMemory (device_, vertexBuffer_, deviceMemory_, 0);
+
+    indexBuffer_ = AllocateBuffer (device_, sizeof (indices),
+        VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
+    vkBindBufferMemory (device_, indexBuffer_, deviceMemory_,
         indexBufferOffset);
 
     void* mapping = nullptr;
-    vkMapMemory(device_, deviceMemory_, 0, VK_WHOLE_SIZE,
+    vkMapMemory (device_, deviceMemory_, 0, VK_WHOLE_SIZE,
         0, &mapping);
-    ::memcpy(mapping, vertices, sizeof(vertices));
+    ::memcpy (mapping, vertices, sizeof (vertices));
 
-    ::memcpy(static_cast<uint8_t*> (mapping) + indexBufferOffset,
-        indices, sizeof(indices));
-    vkUnmapMemory(device_, deviceMemory_);
+    ::memcpy (static_cast<uint8_t*> (mapping) + indexBufferOffset,
+        indices, sizeof (indices));
+    vkUnmapMemory (device_, deviceMemory_);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-void VulkanQuad::CreatePipelineStateObject()
+void VulkanQuad::CreatePipelineStateObject ()
 {
-    vertexShader_ = LoadShader(device_, BasicVertexShader, sizeof(BasicVertexShader));
-    fragmentShader_ = LoadShader(device_, BasicFragmentShader, sizeof(BasicFragmentShader));
+    vertexShader_ = LoadShader (device_, BasicVertexShader, sizeof (BasicVertexShader));
+    fragmentShader_ = LoadShader (device_, BasicFragmentShader, sizeof (BasicFragmentShader));
 
-    pipelineLayout_ = CreatePipelineLayout(device_);
+    pipelineLayout_ = CreatePipelineLayout (device_);
+    VkExtent2D extent = {
+        static_cast<uint32_t> (window_->GetWidth ()),
+        static_cast<uint32_t> (window_->GetHeight ())
+    };
     pipeline_ = CreatePipeline(device_, renderPass_, pipelineLayout_,
-        vertexShader_, fragmentShader_,
-        VkExtent2D{ static_cast<uint32_t> (window_->GetWidth()), static_cast<uint32_t> (window_->GetHeight()) }
-    );
+        vertexShader_, fragmentShader_, extent);
 }
-}   // namespace AMD
+}

@@ -20,11 +20,20 @@
 // THE SOFTWARE.
 //
 
-#version 400
-#extension GL_ARB_separate_shader_objects : enable
-#extension GL_ARB_shading_language_420pack : enable
-layout (location = 0) in vec2 uv;
-layout (location = 0) out vec4 outputColor;
-void main() {
-   outputColor = vec4 (uv,0,1);
-}
+#ifndef AMD_VULKAN_SAMPLE_IMAGE_IO_H_
+#define AMD_VULKAN_SAMPLE_IMAGE_IO_H_
+
+#include <vector>
+#include <cstdint>
+
+#ifdef LoadImage
+#undef LoadImage
+#endif
+
+std::vector<std::uint8_t> LoadImageFromFile (const char* path, const int rowAlignment,
+	int* width, int* height);
+
+std::vector<std::uint8_t> LoadImageFromMemory(const void* data, const std::size_t size, const int rowAlignment,
+	int* width, int* height);
+
+#endif

@@ -21,6 +21,7 @@
 //
 
 #include "VulkanQuad.h"
+#include "VulkanTexturedQuad.h"
 
 int WinMain(
     _In_ HINSTANCE /* hInstance */,
@@ -36,6 +37,7 @@ int WinMain(
     switch (sampleId)
     {
     case 0: sample = new AMD::VulkanQuad; break;
+    case 1: sample = new AMD::VulkanTexturedQuad; break;
     }
 
     if (sample == nullptr || sample->IsInitialized() == false)

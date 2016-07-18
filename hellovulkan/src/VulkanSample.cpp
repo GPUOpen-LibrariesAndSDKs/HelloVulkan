@@ -606,7 +606,7 @@ VulkanSample::VulkanSample()
     debugCallback_ = SetupDebugCallback(instance_, importTable_.get());
 #endif
 
-    window_.reset(new Window{ "Hello Vulkan", 640, 480 });
+    window_.reset(new Window{ "Hello Vulkan", 1280, 720 });
 
     surface_ = CreateSurface(instance_, window_->GetHWND());
 
