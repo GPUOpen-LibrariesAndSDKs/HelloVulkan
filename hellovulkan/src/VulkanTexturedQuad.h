@@ -43,6 +43,9 @@ private:
     VkBuffer vertexBuffer_ = VK_NULL_HANDLE;
     VkBuffer indexBuffer_ = VK_NULL_HANDLE;
 
+    VkDeviceMemory uploadBufferMemory_ = VK_NULL_HANDLE;
+    VkBuffer uploadBufferBuffer_ = VK_NULL_HANDLE;
+
     VkShaderModule vertexShader_ = VK_NULL_HANDLE;
     VkShaderModule fragmentShader_ = VK_NULL_HANDLE;
 
@@ -58,6 +61,7 @@ private:
 
     VkDescriptorPool descriptorPool_ = VK_NULL_HANDLE;
     VkDescriptorSet descriptorSet_ = VK_NULL_HANDLE;
+    VkDescriptorSetLayout descriptorSetLayout_ = VK_NULL_HANDLE;
 
     VkSampler sampler_ = VK_NULL_HANDLE;
 };

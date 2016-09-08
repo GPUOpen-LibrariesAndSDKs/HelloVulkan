@@ -43,12 +43,17 @@ void VulkanTexturedQuad::ShutdownImpl()
     vkDestroyBuffer(device_, indexBuffer_, nullptr);
     vkFreeMemory(device_, deviceBufferMemory_, nullptr);
 
+    vkDestroyImageView (device_, rubyImageView_, nullptr);
     vkDestroyImage (device_, rubyImage_, nullptr);
     vkFreeMemory (device_, deviceImageMemory_, nullptr);
 
     vkDestroyBuffer (device_, uploadImageBuffer_, nullptr);
     vkFreeMemory (device_, uploadImageMemory_, nullptr);
 
+    vkDestroyBuffer (device_, uploadBufferBuffer_, nullptr);
+    vkFreeMemory (device_, uploadBufferMemory_, nullptr);
+
+    vkDestroyDescriptorSetLayout (device_, descriptorSetLayout_, nullptr);
     vkDestroyDescriptorPool (device_, descriptorPool_, nullptr);
 
     vkDestroySampler (device_, sampler_, nullptr);
@@ -149,11 +154,15 @@ std::vector<MemoryTypeInfo> EnumerateHeaps(VkPhysicalDevice device)
 
 ///////////////////////////////////////////////////////////////////////////////
 VkDeviceMemory AllocateMemory(const std::vector<MemoryTypeInfo>& memoryInfos,
-    VkDevice device, const int size, const bool hostVisible = true,
+    VkDevice device, const int size, const uint32_t memoryBits, const bool hostVisible = true,
     const bool deviceLocal = true)
 {
     for (auto& memoryInfo : memoryInfos)
     {
+        if (((1 << memoryInfo.index) & memoryBits) == 0) {
+            continue;
+        }
+
         if (hostVisible != memoryInfo.hostVisible)
         {
             continue;
@@ -255,7 +264,7 @@ VkPipeline CreatePipeline(VkDevice device, VkRenderPass renderPass, VkPipelineLa
 
     VkPipelineViewportStateCreateInfo pipelineViewportStateCreateInfo = {};
     pipelineViewportStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-    
+
     VkViewport viewport;
     viewport.height = static_cast<float> (viewportSize.height);
     viewport.width = static_cast<float> (viewportSize.width);
@@ -346,7 +355,7 @@ VkPipeline CreatePipeline(VkDevice device, VkRenderPass renderPass, VkPipelineLa
 }   // namespace
 
 ///////////////////////////////////////////////////////////////////////////////
-void VulkanTexturedQuad::CreateMeshBuffers(VkCommandBuffer /*uploadCommandBuffer*/)
+void VulkanTexturedQuad::CreateMeshBuffers(VkCommandBuffer uploadCommandBuffer)
 {
     struct Vertex
     {
@@ -374,9 +383,9 @@ void VulkanTexturedQuad::CreateMeshBuffers(VkCommandBuffer /*uploadCommandBuffer
     auto memoryHeaps = EnumerateHeaps(physicalDevice_);
 
     indexBuffer_ = AllocateBuffer(device_, sizeof(indices),
-        VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
+        VK_BUFFER_USAGE_TRANSFER_DST_BIT);
     vertexBuffer_ = AllocateBuffer(device_, sizeof(vertices),
-        VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
+        VK_BUFFER_USAGE_TRANSFER_DST_BIT);
 
     VkMemoryRequirements vertexBufferMemoryRequirements = {};
     vkGetBufferMemoryRequirements(device_, vertexBuffer_,
@@ -393,20 +402,67 @@ void VulkanTexturedQuad::CreateMeshBuffers(VkCommandBuffer /*uploadCommandBuffer
 
     bufferSize = indexBufferOffset + indexBufferMemoryRequirements.size;
     deviceBufferMemory_ = AllocateMemory(memoryHeaps, device_,
-        static_cast<int>(bufferSize));
+        static_cast<int>(bufferSize),
+        vertexBufferMemoryRequirements.memoryTypeBits & indexBufferMemoryRequirements.memoryTypeBits,
+        false, true);
 
     vkBindBufferMemory(device_, vertexBuffer_, deviceBufferMemory_, 0);
     vkBindBufferMemory(device_, indexBuffer_, deviceBufferMemory_,
         indexBufferOffset);
 
+    uploadBufferBuffer_ = AllocateBuffer (device_, sizeof (vertices),
+        VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
+
+    uploadBufferMemory_ = AllocateMemory(memoryHeaps, device_,
+        static_cast<int>(bufferSize),
+        vertexBufferMemoryRequirements.memoryTypeBits & indexBufferMemoryRequirements.memoryTypeBits,
+        true, false);
+
+    vkBindBufferMemory (device_, uploadBufferBuffer_, uploadBufferMemory_, 0);
+
     void* mapping = nullptr;
-    vkMapMemory(device_, deviceBufferMemory_, 0, VK_WHOLE_SIZE,
+    vkMapMemory(device_, uploadBufferMemory_, 0, VK_WHOLE_SIZE,
         0, &mapping);
     ::memcpy(mapping, vertices, sizeof(vertices));
 
     ::memcpy(static_cast<uint8_t*> (mapping) + indexBufferOffset,
         indices, sizeof(indices));
-    vkUnmapMemory(device_, deviceBufferMemory_);
+    vkUnmapMemory(device_, uploadBufferMemory_);
+
+    VkBufferCopy vertexCopy = {};
+    vertexCopy.size = sizeof (vertices);
+
+    VkBufferCopy indexCopy = {};
+    indexCopy.size = sizeof (indices);
+    indexCopy.srcOffset = indexBufferOffset;
+
+    vkCmdCopyBuffer (uploadCommandBuffer, uploadBufferBuffer_, vertexBuffer_,
+        1, &vertexCopy);
+    vkCmdCopyBuffer (uploadCommandBuffer, uploadBufferBuffer_, indexBuffer_,
+        1, &indexCopy);
+
+    VkBufferMemoryBarrier uploadBarriers[2] = {};
+    uploadBarriers[0].sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+    uploadBarriers[0].buffer = vertexBuffer_;
+    uploadBarriers[0].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    uploadBarriers[0].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    uploadBarriers[0].srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    uploadBarriers[0].dstAccessMask = VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;
+    uploadBarriers[0].size = VK_WHOLE_SIZE;
+
+    uploadBarriers[1].sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+    uploadBarriers[1].buffer = indexBuffer_;
+    uploadBarriers[1].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    uploadBarriers[1].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    uploadBarriers[1].srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    uploadBarriers[1].dstAccessMask = VK_ACCESS_INDEX_READ_BIT;
+    uploadBarriers[1].size = VK_WHOLE_SIZE;
+
+    vkCmdPipelineBarrier (uploadCommandBuffer,
+        VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+        VK_PIPELINE_STAGE_TRANSFER_BIT,
+        0, 0, nullptr, 2, uploadBarriers,
+        0, nullptr);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -444,6 +500,7 @@ void VulkanTexturedQuad::CreateTexture (VkCommandBuffer uploadCommandList)
 
     auto memoryHeaps = EnumerateHeaps (physicalDevice_);
     deviceImageMemory_ = AllocateMemory (memoryHeaps, device_, static_cast<int> (requiredSizeForImage),
+        requirements.memoryTypeBits,
         false, true /* = device local, host invisible */);
 
     vkBindImageMemory (device_, rubyImage_, deviceImageMemory_, 0);
@@ -463,7 +520,7 @@ void VulkanTexturedQuad::CreateTexture (VkCommandBuffer uploadCommandList)
     VkDeviceSize requiredSizeForBuffer = requirements.size;
 
     uploadImageMemory_ = AllocateMemory (memoryHeaps, device_,
-        static_cast<int> (requiredSizeForBuffer), true, false);
+        static_cast<int> (requiredSizeForBuffer), requirements.memoryTypeBits, true, false);
 
     vkBindBufferMemory (device_, uploadImageBuffer_, uploadImageMemory_, 0);
 
@@ -522,7 +579,7 @@ void VulkanTexturedQuad::CreateTexture (VkCommandBuffer uploadCommandList)
     imageViewCreateInfo.subresourceRange.levelCount = 1;
     imageViewCreateInfo.subresourceRange.layerCount = 1;
     imageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-    
+
     vkCreateImageView (device_, &imageViewCreateInfo, nullptr, &rubyImageView_);
 }
 
@@ -556,15 +613,13 @@ void VulkanTexturedQuad::CreateDescriptors ()
     descriptorSetLayoutCreateInfo[0].bindingCount = 2;
     descriptorSetLayoutCreateInfo[0].pBindings = descriptorSetLayoutBinding;
 
-    VkDescriptorSetLayout descriptorSetLayout[1];
-
     vkCreateDescriptorSetLayout (
         device_, descriptorSetLayoutCreateInfo,
-        nullptr, descriptorSetLayout);
+        nullptr, &descriptorSetLayout_);
 
     VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = {};
     pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutCreateInfo.pSetLayouts = descriptorSetLayout;
+    pipelineLayoutCreateInfo.pSetLayouts = &descriptorSetLayout_;
     pipelineLayoutCreateInfo.setLayoutCount = 1;
 
     vkCreatePipelineLayout (device_, &pipelineLayoutCreateInfo,
@@ -588,10 +643,10 @@ void VulkanTexturedQuad::CreateDescriptors ()
 
     VkDescriptorSetAllocateInfo descriptorSetAllocateInfo = {};
     descriptorSetAllocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    descriptorSetAllocateInfo.pSetLayouts = descriptorSetLayout;
+    descriptorSetAllocateInfo.pSetLayouts = &descriptorSetLayout_;
     descriptorSetAllocateInfo.descriptorSetCount = 1;
     descriptorSetAllocateInfo.descriptorPool = descriptorPool_;
-    
+
     vkAllocateDescriptorSets (device_, &descriptorSetAllocateInfo, &descriptorSet_);
 
     VkWriteDescriptorSet writeDescriptorSets[1] = {};
@@ -604,9 +659,9 @@ void VulkanTexturedQuad::CreateDescriptors ()
     VkDescriptorImageInfo descriptorImageInfo[1] = {};
     descriptorImageInfo[0].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     descriptorImageInfo[0].imageView = rubyImageView_;
-    
+
     writeDescriptorSets[0].pImageInfo = &descriptorImageInfo[0];
-    
+
     vkUpdateDescriptorSets (device_, 1, writeDescriptorSets, 0, nullptr);
 }
 
@@ -615,7 +670,7 @@ void VulkanTexturedQuad::CreatePipelineStateObject()
 {
     vertexShader_ = LoadShader(device_, BasicVertexShader, sizeof(BasicVertexShader));
     fragmentShader_ = LoadShader(device_, TexturedFragmentShader, sizeof(TexturedFragmentShader));
-    
+
     VkExtent2D extent = {
         static_cast<uint32_t> (window_->GetWidth ()),
         static_cast<uint32_t> (window_->GetHeight ())
