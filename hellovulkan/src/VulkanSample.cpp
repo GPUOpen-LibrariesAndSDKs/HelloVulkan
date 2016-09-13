@@ -51,17 +51,6 @@ struct VulkanSample::ImportTable
 
     ImportTable(VkInstance instance, VkDevice device)
     {
-        GET_INSTANCE_ENTRYPOINT(instance, vkGetPhysicalDeviceSurfaceSupportKHR);
-        GET_INSTANCE_ENTRYPOINT(instance, vkGetPhysicalDeviceSurfaceCapabilitiesKHR);
-        GET_INSTANCE_ENTRYPOINT(instance, vkGetPhysicalDeviceSurfaceFormatsKHR);
-        GET_INSTANCE_ENTRYPOINT(instance, vkGetPhysicalDeviceSurfacePresentModesKHR);
-
-        GET_DEVICE_ENTRYPOINT(device, vkCreateSwapchainKHR);
-        GET_DEVICE_ENTRYPOINT(device, vkDestroySwapchainKHR);
-        GET_DEVICE_ENTRYPOINT(device, vkGetSwapchainImagesKHR);
-        GET_DEVICE_ENTRYPOINT(device, vkAcquireNextImageKHR);
-        GET_DEVICE_ENTRYPOINT(device, vkQueuePresentKHR);
-
 #ifdef _DEBUG
         GET_INSTANCE_ENTRYPOINT(instance, vkCreateDebugReportCallbackEXT);
         GET_INSTANCE_ENTRYPOINT(instance, vkDebugReportMessageEXT);
@@ -71,17 +60,6 @@ struct VulkanSample::ImportTable
 
 #undef GET_INSTANCE_ENTRYPOINT
 #undef GET_DEVICE_ENTRYPOINT
-
-    PFN_vkGetPhysicalDeviceSurfaceSupportKHR vkGetPhysicalDeviceSurfaceSupportKHR = nullptr;
-    PFN_vkGetPhysicalDeviceSurfaceCapabilitiesKHR vkGetPhysicalDeviceSurfaceCapabilitiesKHR = nullptr;
-    PFN_vkGetPhysicalDeviceSurfaceFormatsKHR vkGetPhysicalDeviceSurfaceFormatsKHR = nullptr;
-    PFN_vkGetPhysicalDeviceSurfacePresentModesKHR vkGetPhysicalDeviceSurfacePresentModesKHR = nullptr;
-
-    PFN_vkCreateSwapchainKHR vkCreateSwapchainKHR = nullptr;
-    PFN_vkDestroySwapchainKHR vkDestroySwapchainKHR = nullptr;
-    PFN_vkGetSwapchainImagesKHR vkGetSwapchainImagesKHR = nullptr;
-    PFN_vkAcquireNextImageKHR vkAcquireNextImageKHR = nullptr;
-    PFN_vkQueuePresentKHR vkQueuePresentKHR = nullptr;
 
 #ifdef _DEBUG
     PFN_vkCreateDebugReportCallbackEXT vkCreateDebugReportCallbackEXT = nullptr;
@@ -112,15 +90,12 @@ VKAPI_ATTR VkBool32 VKAPI_CALL DebugReportCallback(
 std::vector<const char*> GetDebugInstanceLayerNames()
 {
     uint32_t layerCount = 0;
-
     vkEnumerateInstanceLayerProperties(&layerCount,
         nullptr);
 
     std::vector<VkLayerProperties> instanceLayers{ layerCount };
-
     vkEnumerateInstanceLayerProperties(&layerCount,
         instanceLayers.data());
-
 
     std::vector<const char*> result;
     for (const auto& p : instanceLayers)
@@ -138,12 +113,10 @@ std::vector<const char*> GetDebugInstanceLayerNames()
 std::vector<const char*> GetDebugInstanceExtensionNames()
 {
     uint32_t extensionCount = 0;
-
     vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount,
         nullptr);
 
     std::vector<VkExtensionProperties> instanceExtensions{ extensionCount };
-
     vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount,
         instanceExtensions.data());
 
@@ -356,11 +329,11 @@ SwapchainFormatColorSpace GetSwapchainFormatAndColorspace(VkPhysicalDevice physi
     VkSurfaceKHR surface, VulkanSample::ImportTable* importTable)
 {
     uint32_t surfaceFormatCount = 0;
-    importTable->vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice,
+    vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice,
         surface, &surfaceFormatCount, nullptr);
 
     std::vector<VkSurfaceFormatKHR> surfaceFormats{ surfaceFormatCount };
-    importTable->vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice,
+    vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice,
         surface, &surfaceFormatCount, surfaceFormats.data());
 
     SwapchainFormatColorSpace result;
@@ -464,16 +437,16 @@ VkSwapchainKHR CreateSwapchain(VkPhysicalDevice physicalDevice, VkDevice device,
     VkFormat* swapchainFormat)
 {
     VkSurfaceCapabilitiesKHR surfaceCapabilities;
-    importTable->vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice,
+    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice,
         surface, &surfaceCapabilities);
 
     uint32_t presentModeCount;
-    importTable->vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice,
+    vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice,
         surface, &presentModeCount, nullptr);
 
     std::vector<VkPresentModeKHR> presentModes{ presentModeCount };
 
-    importTable->vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice,
+    vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice,
         surface, &presentModeCount, presentModes.data());
 
     VkExtent2D swapChainSize = {};
@@ -522,7 +495,7 @@ VkSwapchainKHR CreateSwapchain(VkPhysicalDevice physicalDevice, VkDevice device,
     swapchainCreateInfo.presentMode = VK_PRESENT_MODE_FIFO_KHR;
 
     VkSwapchainKHR swapchain;
-    importTable->vkCreateSwapchainKHR(device, &swapchainCreateInfo,
+    vkCreateSwapchainKHR(device, &swapchainCreateInfo,
         nullptr, &swapchain);
 
     if (swapchainFormat)
@@ -611,7 +584,7 @@ VulkanSample::VulkanSample()
     surface_ = CreateSurface(instance_, window_->GetHWND());
 
     VkBool32 presentSupported;
-    importTable_->vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice,
+    vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice,
         0, surface_, &presentSupported);
     assert(presentSupported);
 
@@ -623,11 +596,11 @@ VulkanSample::VulkanSample()
     assert(swapchain_);
 
     uint32_t swapchainImageCount = 0;
-    importTable_->vkGetSwapchainImagesKHR(device_, swapchain_,
+    vkGetSwapchainImagesKHR(device_, swapchain_,
         &swapchainImageCount, nullptr);
     assert(static_cast<int> (swapchainImageCount) == QUEUE_SLOT_COUNT);
 
-    importTable_->vkGetSwapchainImagesKHR(device_, swapchain_,
+    vkGetSwapchainImagesKHR(device_, swapchain_,
         &swapchainImageCount, swapchainImages_);
 
     renderPass_ = CreateRenderPass(device_, swapchainFormat);
@@ -750,7 +723,7 @@ void VulkanSample::Run(const int frameCount)
 
     for (int i = 0; i < frameCount; ++i)
     {
-        importTable_->vkAcquireNextImageKHR(
+        vkAcquireNextImageKHR(
             device_, swapchain_, UINT64_MAX, imageAcquiredSemaphore,
             VK_NULL_HANDLE, &currentBackBuffer_);
 
@@ -809,7 +782,7 @@ void VulkanSample::Run(const int frameCount)
         presentInfo.swapchainCount = 1;
         presentInfo.pSwapchains = &swapchain_;
         presentInfo.pImageIndices = &currentBackBuffer_;
-        importTable_->vkQueuePresentKHR(queue_, &presentInfo);
+        vkQueuePresentKHR(queue_, &presentInfo);
 
         vkQueueSubmit(queue_, 0, nullptr, frameFences_[currentBackBuffer_]);
     };

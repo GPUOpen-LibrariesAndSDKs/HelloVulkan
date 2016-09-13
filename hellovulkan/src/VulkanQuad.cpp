@@ -227,7 +227,6 @@ VkPipeline CreatePipeline (VkDevice device, VkRenderPass renderPass, VkPipelineL
     VkPipelineViewportStateCreateInfo pipelineViewportStateCreateInfo = {};
     pipelineViewportStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
 
-
     VkViewport viewport;
     viewport.height = static_cast<float> (viewportSize.height);
     viewport.width = static_cast<float> (viewportSize.width);
