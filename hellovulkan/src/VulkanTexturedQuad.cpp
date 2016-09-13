@@ -69,6 +69,19 @@ void VulkanTexturedQuad::RenderImpl(VkCommandBuffer commandBuffer)
 {
     VulkanSample::RenderImpl(commandBuffer);
 
+    VkViewport viewports [1] = {};
+    viewports [0].width = static_cast<float> (window_->GetWidth ());
+    viewports [0].height = static_cast<float> (window_->GetHeight ());
+    viewports [0].minDepth = 0;
+    viewports [0].maxDepth = 1;
+
+    vkCmdSetViewport (commandBuffer, 0, 1, viewports);
+
+    VkRect2D scissors [1] = {};
+    scissors [0].extent.width = window_->GetWidth ();
+    scissors [0].extent.height = window_->GetHeight ();
+    vkCmdSetScissor (commandBuffer, 0, 1, scissors);
+
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
         pipeline_);
     VkDeviceSize offsets[] = { 0 };
@@ -232,8 +245,7 @@ VkShaderModule LoadShader(VkDevice device, const void* shaderContents,
 
 ///////////////////////////////////////////////////////////////////////////////
 VkPipeline CreatePipeline(VkDevice device, VkRenderPass renderPass, VkPipelineLayout layout,
-    VkShaderModule vertexShader, VkShaderModule fragmentShader,
-    VkExtent2D viewportSize)
+    VkShaderModule vertexShader, VkShaderModule fragmentShader)
 {
     VkVertexInputBindingDescription vertexInputBindingDescription;
     vertexInputBindingDescription.binding = 0;
@@ -262,27 +274,20 @@ VkPipeline CreatePipeline(VkDevice device, VkRenderPass renderPass, VkPipelineLa
     pipelineInputAssemblyStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
     pipelineInputAssemblyStateCreateInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 
+    VkDynamicState dynamicStates [] = {
+        VK_DYNAMIC_STATE_VIEWPORT,
+        VK_DYNAMIC_STATE_SCISSOR
+    };    
+
+    VkPipelineDynamicStateCreateInfo dynamicStateCreateInfo = {};
+    dynamicStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+    dynamicStateCreateInfo.dynamicStateCount = 2;
+    dynamicStateCreateInfo.pDynamicStates = dynamicStates;	
+
     VkPipelineViewportStateCreateInfo pipelineViewportStateCreateInfo = {};
     pipelineViewportStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-
-    VkViewport viewport;
-    viewport.height = static_cast<float> (viewportSize.height);
-    viewport.width = static_cast<float> (viewportSize.width);
-    viewport.x = 0;
-    viewport.y = 0;
-    viewport.minDepth = 0;
-    viewport.maxDepth = 1;
-
     pipelineViewportStateCreateInfo.viewportCount = 1;
-    pipelineViewportStateCreateInfo.pViewports = &viewport;
-
-    VkRect2D rect;
-    rect.extent = viewportSize;
-    rect.offset.x = 0;
-    rect.offset.y = 0;
-
     pipelineViewportStateCreateInfo.scissorCount = 1;
-    pipelineViewportStateCreateInfo.pScissors = &rect;
 
     VkPipelineColorBlendAttachmentState pipelineColorBlendAttachmentState = {};
     pipelineColorBlendAttachmentState.colorWriteMask = 0xF;
@@ -343,6 +348,7 @@ VkPipeline CreatePipeline(VkDevice device, VkRenderPass renderPass, VkPipelineLa
     graphicsPipelineCreateInfo.pRasterizationState = &pipelineRasterizationStateCreateInfo;
     graphicsPipelineCreateInfo.pDepthStencilState = &pipelineDepthStencilStateCreateInfo;
     graphicsPipelineCreateInfo.pMultisampleState = &pipelineMultisampleStateCreateInfo;
+    graphicsPipelineCreateInfo.pDynamicState = &dynamicStateCreateInfo;
     graphicsPipelineCreateInfo.pStages = pipelineShaderStageCreateInfos;
     graphicsPipelineCreateInfo.stageCount = 2;
 
@@ -671,11 +677,7 @@ void VulkanTexturedQuad::CreatePipelineStateObject()
     vertexShader_ = LoadShader(device_, BasicVertexShader, sizeof(BasicVertexShader));
     fragmentShader_ = LoadShader(device_, TexturedFragmentShader, sizeof(TexturedFragmentShader));
 
-    VkExtent2D extent = {
-        static_cast<uint32_t> (window_->GetWidth ()),
-        static_cast<uint32_t> (window_->GetHeight ())
-    };
     pipeline_ = CreatePipeline(device_, renderPass_, pipelineLayout_,
-        vertexShader_, fragmentShader_, extent);
+        vertexShader_, fragmentShader_);
 }
 }   // namespace AMD
