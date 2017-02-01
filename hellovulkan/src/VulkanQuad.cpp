@@ -363,9 +363,6 @@ void VulkanQuad::CreateMeshBuffers (VkCommandBuffer /*uploadCommandBuffer*/)
         static_cast<int>(bufferSize));
 
     vkBindBufferMemory (device_, vertexBuffer_, deviceMemory_, 0);
-
-    indexBuffer_ = AllocateBuffer (device_, sizeof (indices),
-        VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
     vkBindBufferMemory (device_, indexBuffer_, deviceMemory_,
         indexBufferOffset);
 

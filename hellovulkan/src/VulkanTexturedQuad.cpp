@@ -416,11 +416,14 @@ void VulkanTexturedQuad::CreateMeshBuffers(VkCommandBuffer uploadCommandBuffer)
     vkBindBufferMemory(device_, indexBuffer_, deviceBufferMemory_,
         indexBufferOffset);
 
-    uploadBufferBuffer_ = AllocateBuffer (device_, sizeof (vertices),
+    uploadBufferBuffer_ = AllocateBuffer (device_, static_cast<int> (bufferSize),
         VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
+    VkMemoryRequirements uploadBufferMemoryRequirements = {};
+    vkGetBufferMemoryRequirements (device_, uploadBufferBuffer_,
+        &uploadBufferMemoryRequirements);
 
     uploadBufferMemory_ = AllocateMemory(memoryHeaps, device_,
-        static_cast<int>(bufferSize),
+        static_cast<int>(uploadBufferMemoryRequirements.size),
         vertexBufferMemoryRequirements.memoryTypeBits & indexBufferMemoryRequirements.memoryTypeBits,
         true, false);
 
