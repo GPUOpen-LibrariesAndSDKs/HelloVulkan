@@ -28,7 +28,7 @@ project (_AMD_SAMPLE_NAME)
     windowstarget (_AMD_WIN_SDK_VERSION)
 
     files { "../src/**.h", "../src/**.cpp" }
-    links { "$(VULKAN_SDK)/bin/vulkan-1.lib" }
+    links { "$(VULKAN_SDK)/lib/vulkan-1.lib" }
     includedirs { "$(VULKAN_SDK)/include" }
 
     defines { "_CRT_SECURE_NO_WARNINGS" }
