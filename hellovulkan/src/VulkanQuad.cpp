@@ -127,7 +127,7 @@ std::vector<MemoryTypeInfo> EnumerateHeaps (VkPhysicalDevice device)
 
 ///////////////////////////////////////////////////////////////////////////////
 VkDeviceMemory AllocateMemory (const std::vector<MemoryTypeInfo>& memoryInfos,
-    VkDevice device, const int size)
+    VkDevice device, const int size, bool* isHostCoherent = nullptr)
 {
     // We take the first HOST_VISIBLE memory
     for (auto& memoryInfo : memoryInfos)
@@ -142,6 +142,12 @@ VkDeviceMemory AllocateMemory (const std::vector<MemoryTypeInfo>& memoryInfos,
             VkDeviceMemory deviceMemory;
             vkAllocateMemory (device, &memoryAllocateInfo, nullptr,
                 &deviceMemory);
+
+            if (isHostCoherent)
+            {
+                *isHostCoherent = memoryInfo.hostCoherent;
+            }
+
             return deviceMemory;
         }
     }
@@ -359,8 +365,9 @@ void VulkanQuad::CreateMeshBuffers (VkCommandBuffer /*uploadCommandBuffer*/)
         indexBufferMemoryRequirements.alignment);
 
     bufferSize = indexBufferOffset + indexBufferMemoryRequirements.size;
+    bool memoryIsHostCoherent = false;
     deviceMemory_ = AllocateMemory(memoryHeaps, device_,
-        static_cast<int>(bufferSize));
+        static_cast<int>(bufferSize), &memoryIsHostCoherent);
 
     vkBindBufferMemory (device_, vertexBuffer_, deviceMemory_, 0);
     vkBindBufferMemory (device_, indexBuffer_, deviceMemory_,
@@ -373,6 +380,18 @@ void VulkanQuad::CreateMeshBuffers (VkCommandBuffer /*uploadCommandBuffer*/)
 
     ::memcpy (static_cast<uint8_t*> (mapping) + indexBufferOffset,
         indices, sizeof (indices));
+
+    if (!memoryIsHostCoherent)
+    {
+        VkMappedMemoryRange mappedMemoryRange = {};
+        mappedMemoryRange.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
+        mappedMemoryRange.memory = deviceMemory_;
+        mappedMemoryRange.offset = 0;
+        mappedMemoryRange.size = VK_WHOLE_SIZE;
+
+        vkFlushMappedMemoryRanges (device_, 1, &mappedMemoryRange);
+    }
+
     vkUnmapMemory (device_, deviceMemory_);
 }
 

@@ -165,10 +165,16 @@ std::vector<MemoryTypeInfo> EnumerateHeaps(VkPhysicalDevice device)
     return result;
 }
 
+enum MemoryProperties
+{
+    MT_DeviceLocal = 1,
+    MT_HostVisible = 2
+};
+
 ///////////////////////////////////////////////////////////////////////////////
 VkDeviceMemory AllocateMemory(const std::vector<MemoryTypeInfo>& memoryInfos,
-    VkDevice device, const int size, const uint32_t memoryBits, const bool hostVisible = true,
-    const bool deviceLocal = true)
+    VkDevice device, const int size, const uint32_t memoryBits,
+    unsigned int memoryProperties, bool* isHostCoherent = nullptr)
 {
     for (auto& memoryInfo : memoryInfos)
     {
@@ -176,14 +182,19 @@ VkDeviceMemory AllocateMemory(const std::vector<MemoryTypeInfo>& memoryInfos,
             continue;
         }
 
-        if (hostVisible != memoryInfo.hostVisible)
+        if ((memoryProperties & MT_DeviceLocal) && !memoryInfo.deviceLocal)
         {
             continue;
         }
 
-        if (deviceLocal != memoryInfo.deviceLocal)
+        if ((memoryProperties & MT_HostVisible) && !memoryInfo.hostVisible)
         {
             continue;
+        }
+
+        if (isHostCoherent)
+        {
+            *isHostCoherent = memoryInfo.hostCoherent;
         }
 
         VkMemoryAllocateInfo memoryAllocateInfo = {};
@@ -410,7 +421,7 @@ void VulkanTexturedQuad::CreateMeshBuffers(VkCommandBuffer uploadCommandBuffer)
     deviceBufferMemory_ = AllocateMemory(memoryHeaps, device_,
         static_cast<int>(bufferSize),
         vertexBufferMemoryRequirements.memoryTypeBits & indexBufferMemoryRequirements.memoryTypeBits,
-        false, true);
+        MT_DeviceLocal);
 
     vkBindBufferMemory(device_, vertexBuffer_, deviceBufferMemory_, 0);
     vkBindBufferMemory(device_, indexBuffer_, deviceBufferMemory_,
@@ -422,10 +433,11 @@ void VulkanTexturedQuad::CreateMeshBuffers(VkCommandBuffer uploadCommandBuffer)
     vkGetBufferMemoryRequirements (device_, uploadBufferBuffer_,
         &uploadBufferMemoryRequirements);
 
+    bool memoryIsHostCoherent = false;
     uploadBufferMemory_ = AllocateMemory(memoryHeaps, device_,
         static_cast<int>(uploadBufferMemoryRequirements.size),
         vertexBufferMemoryRequirements.memoryTypeBits & indexBufferMemoryRequirements.memoryTypeBits,
-        true, false);
+        MT_HostVisible, &memoryIsHostCoherent);
 
     vkBindBufferMemory (device_, uploadBufferBuffer_, uploadBufferMemory_, 0);
 
@@ -436,6 +448,18 @@ void VulkanTexturedQuad::CreateMeshBuffers(VkCommandBuffer uploadCommandBuffer)
 
     ::memcpy(static_cast<uint8_t*> (mapping) + indexBufferOffset,
         indices, sizeof(indices));
+
+    if (!memoryIsHostCoherent) 
+    {
+        VkMappedMemoryRange mappedMemoryRange = {};
+        mappedMemoryRange.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
+        mappedMemoryRange.memory = uploadBufferMemory_;
+        mappedMemoryRange.offset = 0;
+        mappedMemoryRange.size = VK_WHOLE_SIZE;
+
+        vkFlushMappedMemoryRanges (device_, 1, &mappedMemoryRange);
+    }
+
     vkUnmapMemory(device_, uploadBufferMemory_);
 
     VkBufferCopy vertexCopy = {};
@@ -510,7 +534,7 @@ void VulkanTexturedQuad::CreateTexture (VkCommandBuffer uploadCommandList)
     auto memoryHeaps = EnumerateHeaps (physicalDevice_);
     deviceImageMemory_ = AllocateMemory (memoryHeaps, device_, static_cast<int> (requiredSizeForImage),
         requirements.memoryTypeBits,
-        false, true /* = device local, host invisible */);
+        MT_DeviceLocal);
 
     vkBindImageMemory (device_, rubyImage_, deviceImageMemory_, 0);
 
@@ -528,8 +552,10 @@ void VulkanTexturedQuad::CreateTexture (VkCommandBuffer uploadCommandList)
 
     VkDeviceSize requiredSizeForBuffer = requirements.size;
 
+    bool memoryIsHostCoherent = false;
     uploadImageMemory_ = AllocateMemory (memoryHeaps, device_,
-        static_cast<int> (requiredSizeForBuffer), requirements.memoryTypeBits, true, false);
+        static_cast<int> (requiredSizeForBuffer), requirements.memoryTypeBits,
+        MT_HostVisible, &memoryIsHostCoherent);
 
     vkBindBufferMemory (device_, uploadImageBuffer_, uploadImageMemory_, 0);
 
@@ -537,6 +563,18 @@ void VulkanTexturedQuad::CreateTexture (VkCommandBuffer uploadCommandList)
     vkMapMemory (device_, uploadImageMemory_, 0, VK_WHOLE_SIZE,
         0, &data);
     ::memcpy (data, image.data (), image.size ());
+    
+    if (!memoryIsHostCoherent) 
+    {
+        VkMappedMemoryRange mappedMemoryRange = {};
+        mappedMemoryRange.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
+        mappedMemoryRange.memory = uploadImageMemory_;
+        mappedMemoryRange.offset = 0;
+        mappedMemoryRange.size = VK_WHOLE_SIZE;
+
+        vkFlushMappedMemoryRanges (device_, 1, &mappedMemoryRange);
+    }
+
     vkUnmapMemory (device_, uploadImageMemory_);
 
     VkBufferImageCopy bufferImageCopy = {};
