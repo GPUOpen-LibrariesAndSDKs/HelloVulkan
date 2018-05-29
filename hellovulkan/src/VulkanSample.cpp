@@ -281,6 +281,12 @@ void CreateDeviceAndQueue(VkInstance instance, VkDevice* outputDevice,
     deviceCreateInfo.ppEnabledLayerNames = deviceLayers.data();
     deviceCreateInfo.enabledLayerCount = static_cast<uint32_t> (deviceLayers.size());
 
+	// Our SPIR-V requests this, so we need to enable it here
+	VkPhysicalDeviceFeatures enabledFeatures = {};
+	enabledFeatures.shaderClipDistance = true;
+
+	deviceCreateInfo.pEnabledFeatures = &enabledFeatures;
+
     std::vector<const char*> deviceExtensions =
     {
         "VK_KHR_swapchain"

@@ -213,7 +213,7 @@ VkDeviceMemory AllocateMemory(const std::vector<MemoryTypeInfo>& memoryInfos,
 
 ///////////////////////////////////////////////////////////////////////////////
 VkBuffer AllocateBuffer(VkDevice device, const int size,
-    const VkBufferUsageFlagBits bits)
+    const VkBufferUsageFlags bits)
 {
     VkBufferCreateInfo bufferCreateInfo = {};
     bufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -400,9 +400,9 @@ void VulkanTexturedQuad::CreateMeshBuffers(VkCommandBuffer uploadCommandBuffer)
     auto memoryHeaps = EnumerateHeaps(physicalDevice_);
 
     indexBuffer_ = AllocateBuffer(device_, sizeof(indices),
-        VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
     vertexBuffer_ = AllocateBuffer(device_, sizeof(vertices),
-        VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
 
     VkMemoryRequirements vertexBufferMemoryRequirements = {};
     vkGetBufferMemoryRequirements(device_, vertexBuffer_,
@@ -492,8 +492,8 @@ void VulkanTexturedQuad::CreateMeshBuffers(VkCommandBuffer uploadCommandBuffer)
     uploadBarriers[1].size = VK_WHOLE_SIZE;
 
     vkCmdPipelineBarrier (uploadCommandBuffer,
-        VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
         VK_PIPELINE_STAGE_TRANSFER_BIT,
+        VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
         0, 0, nullptr, 2, uploadBarriers,
         0, nullptr);
 }
