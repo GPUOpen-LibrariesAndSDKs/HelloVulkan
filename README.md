@@ -26,6 +26,12 @@ Visual Studio files can be found in the `hellovulkan\build` directory.
 
 If you need to regenerate the Visual Studio files, open a command prompt in the `hellovulkan\premake` directory and run `..\..\premake\premake5.exe vs2015` (or `..\..\premake\premake5.exe vs2013` for Visual Studio 2013.)
 
+`build_msvc.bat` allows to build project from `cmd`.
+```cmd
+> build_msvc.bat
+> .\hellovulkan\bin\Main.exe
+```
+
 Vulkan also supports Linux&reg;, of course, and Premake can generate GNU Makefiles. However, at this time, the sample itself is Windows specific (because the helper code in Window.h/.cpp is Windows specific).
 
 Third-party software
